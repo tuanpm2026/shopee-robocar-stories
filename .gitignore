@@ -1,0 +1,9 @@
+# Original full-resolution assets — kept locally for printing, NOT deployed.
+# Leading slash anchors to repo root so docs/Shopee-story-* stays tracked.
+/Shopee-story-*/
+/*.zip
+/book-cover*.png
+/Characters/
+
+# OS / editor
+.DS_Store
