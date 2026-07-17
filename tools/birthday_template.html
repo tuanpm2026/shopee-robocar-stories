@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  @font-face{
+    font-family:'Baloo 2';
+    src:url('assets/Baloo2.ttf') format('truetype');
+    font-weight:100 900; font-style:normal; font-display:block;
+  }
+  :root{ --stageW:1920px; --stageH:1080px; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; background:#1b1030; overflow:hidden; font-family:"Baloo 2","Arial Rounded MT Bold","Segoe UI",system-ui,sans-serif; }
+  #fit{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  .stage{
+    width:var(--stageW); height:var(--stageH); position:relative; overflow:hidden;
+    transform-origin:center center;
+    background:
+      radial-gradient(120% 90% at 50% 12%, #fff6e6 0%, #ffe8cf 38%, #ffd9e6 70%, #d9f4ff 100%);
+  }
+  /* confetti wash */
+  .bg-confetti{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    opacity:.55; mix-blend-mode:multiply; pointer-events:none; }
+  .bunting{ position:absolute; top:-18px; left:0; width:100%; height:250px;
+    object-fit:contain; object-position:top center; pointer-events:none; z-index:6; }
+
+  /* Title block */
+  .titlebar{ position:absolute; top:52px; left:50%; transform:translateX(-50%);
+    text-align:center; z-index:7; width:1300px; }
+  .titlebar h1{ font-size:70px; font-weight:800; line-height:1;
+    color:#ff4f9a; -webkit-text-stroke:7px #fff; paint-order:stroke fill;
+    text-shadow:0 5px 0 #e23f86, 0 12px 22px rgba(0,0,0,.22); }
+  .titlebar .sub{ display:inline-block; margin-top:12px; font-size:26px; font-weight:700;
+    color:#ff6aa6; background:#fff; padding:3px 24px; border-radius:999px;
+    box-shadow:0 6px 16px rgba(0,0,0,.18); }
+
+  /* Photo frame (polaroid) */
+  .photo-stack{ position:absolute; left:50%; top:604px; transform:translate(-50%,-50%);
+    z-index:5; }
+  .polaroid{ position:relative; background:#fff; padding:18px 18px 24px; border-radius:26px;
+    box-shadow:0 26px 60px rgba(60,20,80,.35), 0 4px 0 rgba(0,0,0,.05);
+    transform:rotate(-2deg); }
+  .polaroid .framebox{ position:relative; width:556px; height:712px; overflow:hidden;
+    border-radius:14px; background:#f0e9df; }
+  .polaroid.land .framebox{ width:872px; height:560px; }
+  .polaroid img.photo{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    will-change:transform; }
+  .kb{ animation:kb var(--dur,6s) ease-in-out both; }
+  @keyframes kb{ from{ transform:scale(1.02) translate(0,0);} to{ transform:scale(1.12) translate(-1.5%,-2%);} }
+
+  /* Character / party decorations (fixed frame) */
+  .decor{ position:absolute; pointer-events:none; z-index:4; }
+  .d-balloons{ left:6px;   top:150px;  width:260px; z-index:7; }
+  .d-num3{     right:24px;  top:150px;  width:200px; z-index:7; }
+  /* vị trí dùng chung cho các biến thể khung */
+  .pos-bl{   left:-20px;  bottom:-26px; width:360px; z-index:8; }
+  .pos-bl2{  left:238px;  bottom:-46px; width:320px; z-index:7; }
+  .pos-br{   right:-16px; bottom:-24px; width:360px; z-index:8; }
+  .pos-br2{  right:252px; bottom:-28px; width:246px; z-index:7; }
+  .pos-jin{  left:74px;   bottom:-8px;  width:208px; z-index:9; }
+  .pos-hel{  left:26px;   top:150px;    width:520px; z-index:5; }
+  .pos-titan{ right:-30px; bottom:-22px; width:480px; z-index:7; }
+  .pos-cake{ left:300px;  bottom:-4px;  width:210px; z-index:9; }
+
+  /* Cover / outro */
+  .hero{ position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; z-index:9; }
+  .hero{ gap:14px; padding-bottom:20px; }
+  .hero .mascot{ width:400px; filter:drop-shadow(0 24px 40px rgba(60,20,80,.35)); }
+  .hero h1{ font-size:96px; font-weight:800; color:#ff4f9a; -webkit-text-stroke:9px #fff;
+    paint-order:stroke fill; text-shadow:0 7px 0 #e23f86, 0 18px 32px rgba(0,0,0,.22);
+    text-align:center; line-height:1.06; }
+  .hero .date{ display:inline-block; font-size:36px; font-weight:700; color:#ff6aa6;
+    background:#fff; padding:6px 34px; border-radius:999px; box-shadow:0 8px 20px rgba(0,0,0,.2); }
+
+  /* slide crossfade */
+  .slide{ position:absolute; inset:0; opacity:0; transition:opacity .9s ease; }
+  .slide.on{ opacity:1; }
+  /* render tĩnh cho MP4: bỏ mọi animation để frame ổn định */
+  .static-mode .slide{ transition:none !important; }
+  .static-mode .kb{ animation:none !important; transform:scale(1.02) !important; }
+
+  /* start overlay */
+  #start{ position:fixed; inset:0; z-index:50; background:rgba(20,10,35,.92); color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; cursor:pointer; }
+  #start h2{ font-size:40px; font-weight:800; }
+  #start .btn{ font-size:26px; font-weight:700; padding:16px 40px; border-radius:999px;
+    background:linear-gradient(135deg,#ff7ab0,#ff5a8a); box-shadow:0 10px 30px rgba(255,90,138,.5); }
+  #start small{ opacity:.7; font-size:16px; }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div id="fit">
+  <div class="stage" id="stage">
+    <img class="bg-confetti" data-decor="confetti_overlay" data-variants="*" alt="">
+    <!-- khung cố định (mọi biến thể) -->
+    <img class="bunting" data-decor="bunting" data-variants="*" alt="">
+    <div class="titlebar" id="frameTitle" data-variants="0,1,2">
+      <h1>__TITLE__</h1>
+      <div class="sub">__SUBTITLE__</div>
+    </div>
+    <img class="decor d-balloons" data-decor="balloons_bunch" data-variants="*" alt="">
+    <img class="decor d-num3"     data-decor="number3" data-variants="*" alt="">
+
+    <!-- Biến thể 0: Poli · Roy · Amber · bánh Rody -->
+    <img class="decor pos-bl"  data-decor="poli"      data-variants="0" alt="">
+    <img class="decor pos-bl2" data-decor="roy"       data-variants="0" alt="">
+    <img class="decor pos-br"  data-decor="amber"     data-variants="0" alt="">
+    <img class="decor pos-br2" data-decor="rody_cake" data-variants="0" alt="">
+
+    <!-- Biến thể 1: Helly bay · Bucky · Mark · Jin · quà -->
+    <img class="decor pos-hel" data-decor="helly_fly"  data-variants="1" alt="">
+    <img class="decor pos-bl"  data-decor="bucky"      data-variants="1" alt="">
+    <img class="decor pos-br"  data-decor="mark"       data-variants="1" alt="">
+    <img class="decor pos-jin" data-decor="jin"        data-variants="1" alt="">
+    <img class="decor pos-br2" data-decor="gift_stack" data-variants="1" alt="">
+
+    <!-- Biến thể 2: Titan chở quà · Benny · bánh -->
+    <img class="decor pos-titan" data-decor="titan_gifts" data-variants="2" alt="">
+    <img class="decor pos-bl"    data-decor="benny"       data-variants="2" alt="">
+    <img class="decor pos-cake"  data-decor="cake3"       data-variants="2" alt="">
+
+    <!-- photo layers (two, for crossfade) -->
+    <div class="slide" id="layerA"><div class="photo-stack"><div class="polaroid"><div class="framebox"><img class="photo"></div></div></div></div>
+    <div class="slide" id="layerB"><div class="photo-stack"><div class="polaroid"><div class="framebox"><img class="photo"></div></div></div></div>
+
+    <!-- hero (cover / outro) -->
+    <div class="slide hero hidden" id="hero">
+      <img class="mascot" data-decor="shopee_mascot" alt="">
+      <h1 id="heroText"></h1>
+      <div class="date" id="heroDate"></div>
+    </div>
+  </div>
+</div>
+
+<div id="start">
+  <h2>🎂 __TITLE__ 🎉</h2>
+  <div class="btn">▶ Bắt đầu trình chiếu</div>
+  <small>Bấm để phát (có nhạc nền). Dùng phím ← → để chuyển, Space để tạm dừng.</small>
+</div>
+
+<audio id="bgm" loop __MUSIC_ATTR__></audio>
+
+<script>
+const DECOR_BASE = "__DECOR_BASE__";
+const SLIDES = __SLIDES_JSON__;      // [{type:'cover'|'photo'|'outro', photo?, orient?, text?, date?}]
+const DUR = __SLIDE_MS__;            // ms mỗi slide
+const STATIC = new URLSearchParams(location.search).has("static");
+
+// nối nguồn cho mọi ảnh trang trí
+document.querySelectorAll("[data-decor]").forEach(el=>{
+  el.src = DECOR_BASE + el.dataset.decor + ".png";
+});
+
+function fit(){
+  const s = document.getElementById("stage");
+  const k = Math.min(innerWidth/1920, innerHeight/1080);
+  s.style.transform = "scale("+k+")";
+}
+addEventListener("resize", fit); fit();
+
+const layers=[document.getElementById("layerA"),document.getElementById("layerB")];
+const hero=document.getElementById("hero");
+const frameTitle=document.getElementById("frameTitle");
+const heroText=document.getElementById("heroText");
+const heroDate=document.getElementById("heroDate");
+const decorEls=[...document.querySelectorAll('[data-variants]')];
+let cur=0, front=0, timer=null, paused=false;
+
+function preload(src){ return new Promise(r=>{ const i=new Image(); i.onload=i.onerror=()=>r(); i.src=src; }); }
+
+function setDecor(v){ // 'cover': chỉ trang trí nền chung; số: nền chung + đúng biến thể
+  const cover = v==='cover';
+  decorEls.forEach(el=>{
+    const spec=el.dataset.variants;
+    let show;
+    if(cover) show = (spec==='*');
+    else show = (typeof v==='number' && v>=0) && (spec==='*' || spec.split(',').includes(String(v)));
+    el.style.display = show ? '' : 'none';
+  });
+}
+
+async function render(i){
+  const sl=SLIDES[i];
+  if(sl.type==='cover' || sl.type==='outro'){
+    layers.forEach(l=>l.classList.remove('on'));
+    hero.classList.remove('hidden'); hero.classList.add('on');
+    setDecor('cover');
+    heroText.innerHTML = sl.text || "";
+    heroDate.textContent = sl.date || "";
+    return;
+  }
+  // photo slide
+  hero.classList.remove('on'); hero.classList.add('hidden');
+  setDecor(sl.variant == null ? 0 : sl.variant);
+  const back=1-front;
+  const layer=layers[back];
+  const pol=layer.querySelector('.polaroid');
+  const img=layer.querySelector('img.photo');
+  pol.classList.toggle('land', sl.orient==='land');
+  const src = sl.photo;
+  await preload(src);
+  img.src=src;
+  img.classList.remove('kb'); void img.offsetWidth; // restart animation
+  img.style.setProperty('--dur',(DUR/1000)+'s');
+  if(!STATIC) img.classList.add('kb');
+  layers[front].classList.remove('on');
+  layer.classList.add('on');
+  front=back;
+}
+
+async function go(i){ cur=(i+SLIDES.length)%SLIDES.length; await render(cur); }
+async function next(){ await go(cur+1); }
+async function prev(){ await go(cur-1); }
+
+function schedule(){
+  clearTimeout(timer);
+  if(paused||STATIC) return;
+  timer=setTimeout(async()=>{ await next(); schedule(); }, DUR);
+}
+
+addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'){ next(); schedule(); }
+  else if(e.key==='ArrowLeft'){ prev(); schedule(); }
+  else if(e.key===' '){ e.preventDefault(); paused=!paused; schedule(); }
+});
+
+// API cho render MP4 tĩnh
+window.__count = SLIDES.length;
+window.__goto = async(i)=>{ await go(i); await new Promise(r=>setTimeout(r,60)); return true; };
+
+function begin(){
+  document.getElementById('start').classList.add('hidden');
+  const bgm=document.getElementById('bgm');
+  if(bgm.getAttribute('src')){ bgm.volume=.6; bgm.play().catch(()=>{}); }
+  go(0); schedule();
+}
+document.getElementById('start').addEventListener('click', begin);
+
+if(STATIC){
+  document.body.classList.add('static-mode');
+  document.getElementById('start').classList.add('hidden');
+  go(0);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "shopee-robocar-stories",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuanpm2026/shopee-robocar-stories.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tuanpm2026/shopee-robocar-stories/issues"
+  },
+  "homepage": "https://github.com/tuanpm2026/shopee-robocar-stories#readme",
+  "dependencies": {
+    "playwright": "^1.61.1"
+  }
+}

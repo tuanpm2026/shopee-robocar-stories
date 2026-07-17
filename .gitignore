@@ -5,5 +5,20 @@
 /book-cover*.png
 /Characters/
 
+# Birthday slideshow — real child photos & outputs kept LOCAL (privacy), never pushed
+/albums/
+/Shopee-birthday/
+# Secrets
+.env
+*.key
+
 # OS / editor
 .DS_Store
+
+# Node
+/node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  @font-face{ font-family:'Baloo 2'; src:url('assets/Baloo2.ttf') format('truetype');
+    font-weight:100 900; font-style:normal; font-display:block; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; background:#12081f; overflow:hidden;
+    font-family:'Baloo 2','Arial Rounded MT Bold',system-ui,sans-serif; }
+  #fit{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  .stage{ width:1920px; height:1080px; position:relative; overflow:hidden; transform-origin:center; background:#ffe9d6; }
+
+  .slide{ position:absolute; inset:0; opacity:0; transition:opacity .9s ease; }
+  .slide.on{ opacity:1; }
+  .scene-blur{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    transform:scale(1.15); filter:blur(26px) brightness(1.04); z-index:0; }
+  .scene{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:1; }
+  .photos{ position:absolute; inset:0; z-index:3; }
+
+  /* khung ảnh đặt theo tâm (cx,cy), xoay tự do */
+  .pframe{ position:absolute; }
+  .pframe .framebox{ position:relative; width:100%; overflow:hidden; background:#efe7db; }
+  .pframe img.photo{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; will-change:transform; }
+  .kb{ animation:kb var(--dur,6s) ease-in-out both; }
+  @keyframes kb{ from{ transform:scale(1.0);} to{ transform:scale(1.045);} }
+  .static-mode .slide{ transition:none !important; }
+  .static-mode .kb{ animation:none !important; transform:scale(1.0) !important; }
+
+  /* kiểu viền */
+  .f-polaroid{ background:#fff; padding:15px 15px 22px; border-radius:16px; box-shadow:0 22px 46px rgba(40,10,60,.42); }
+  .f-polaroid .framebox{ border-radius:8px; }
+  .f-color{ background:var(--c,#ff8fb8); padding:16px; border-radius:22px; box-shadow:0 22px 46px rgba(40,10,60,.42); }
+  .f-color .framebox{ border-radius:12px; box-shadow:inset 0 0 0 4px #fff; }
+  .f-gold{ background:#fff; padding:11px; border:8px solid #f2c44d; border-radius:10px; box-shadow:0 20px 44px rgba(40,10,60,.4); }
+  .f-gold .framebox{ border-radius:4px; }
+  .f-round{ background:#fff; padding:14px; border-radius:28px; box-shadow:0 22px 46px rgba(40,10,60,.42); }
+  .f-round .framebox{ border-radius:22px; }
+  .f-circle{ background:#fff; padding:16px; border-radius:50%; box-shadow:0 22px 46px rgba(40,10,60,.42); }
+  .f-circle .framebox{ border-radius:50%; box-shadow:inset 0 0 0 5px #cfe6ff; }
+  .f-tape{ background:#fff; padding:12px; border-radius:5px; box-shadow:0 18px 40px rgba(40,10,60,.4); }
+  .f-tape::before,.f-tape::after{ content:''; position:absolute; top:-15px; width:118px; height:34px;
+    background:rgba(255,222,120,.72); box-shadow:0 3px 8px rgba(0,0,0,.12); }
+  .f-tape::before{ left:9%; transform:rotate(-8deg); }
+  .f-tape::after{ right:9%; transform:rotate(7deg); background:rgba(150,220,255,.72); }
+  .f-clip{ background:#fff; padding:14px 14px 18px; border-radius:8px; box-shadow:0 18px 40px rgba(40,10,60,.4); }
+  .f-clip::before{ content:''; position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+    width:26px; height:36px; background:#4f83d6; border-radius:6px; box-shadow:0 3px 6px rgba(0,0,0,.25); }
+  .string{ position:absolute; height:5px; background:linear-gradient(#caa063,#a67f3d);
+    border-radius:3px; z-index:2; box-shadow:0 2px 3px rgba(0,0,0,.22); }
+
+  /* banner chữ đổi mỗi slide (kiểu ruy-băng) */
+  .banner{ position:absolute; top:30px; left:50%; transform:translateX(-50%); z-index:8;
+    background:linear-gradient(#4f8fe0,#3a72c8); color:#fff; font-weight:800; font-size:38px;
+    padding:12px 46px; border-radius:16px; border:4px solid #fff;
+    box-shadow:0 10px 26px rgba(40,10,60,.32);
+    max-width:88%; box-sizing:border-box; text-align:center;
+    white-space:normal; line-height:1.15; text-wrap:balance; }
+  .banner.long{ font-size:30px; padding:10px 34px; }
+
+  .hero{ position:absolute; inset:0; z-index:9; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px; padding-bottom:24px; }
+  .hero .mascot{ width:380px; filter:drop-shadow(0 24px 40px rgba(40,10,60,.4)); }
+  .hero h1{ font-size:104px; font-weight:800; color:#ff4f9a; -webkit-text-stroke:9px #fff;
+    paint-order:stroke fill; text-shadow:0 7px 0 #e23f86, 0 18px 32px rgba(0,0,0,.25);
+    text-align:center; line-height:1.05; }
+  .hero .date{ display:inline-block; font-size:38px; font-weight:700; color:#ff6aa6;
+    background:#fff; padding:6px 36px; border-radius:999px; box-shadow:0 8px 20px rgba(0,0,0,.2); }
+
+  #start{ position:fixed; inset:0; z-index:50; background:rgba(18,8,31,.93); color:#fff; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; }
+  #start h2{ font-size:40px; font-weight:800; text-align:center; padding:0 30px; }
+  #start .btn{ font-size:26px; font-weight:700; padding:16px 42px; border-radius:999px;
+    background:linear-gradient(135deg,#ff7ab0,#ff5a8a); box-shadow:0 10px 30px rgba(255,90,138,.5); }
+  #start small{ opacity:.7; font-size:16px; }
+  .hidden{ display:none !important; }
+  #fw{ position:absolute; inset:0; width:100%; height:100%; z-index:6; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="fit">
+  <div class="stage" id="stage">
+    <div class="slide" id="layerA"><img class="scene-blur" alt=""><img class="scene" alt=""><div class="photos"></div></div>
+    <div class="slide" id="layerB"><img class="scene-blur" alt=""><img class="scene" alt=""><div class="photos"></div></div>
+    <div class="banner hidden" id="banner"></div>
+    <div class="hero hidden" id="hero">
+      <img class="mascot" src="decorations/shopee_mascot.png" alt="">
+      <h1 id="heroText"></h1><div class="date" id="heroDate"></div>
+    </div>
+    <canvas id="fw" class="hidden" width="1920" height="1080"></canvas>
+  </div>
+</div>
+
+<div id="start">
+  <h2>🎂 __TITLE__ · __SUBTITLE__ 🎉</h2>
+  <div class="btn">▶ Bắt đầu trình chiếu</div>
+  <small>Bấm để phát. Phím ← → chuyển slide, Space tạm dừng.</small>
+</div>
+
+<audio id="bgm"></audio>
+
+<script>
+const SLIDES = __SLIDES_JSON__;   // {type, scene, caption?, slots:[{cx,cy,w,h,rot,frame,color?}], photos:[src...]}
+const MUSIC = __MUSIC_JSON__;     // ["music/music-1.mp3", ...] phát lần lượt + lặp
+const SFX = __SFX_JSON__;         // ["sfx/fireworks.wav","sfx/applause.wav"] phát ở slide cuối
+const DUR = __SLIDE_MS__;
+const STATIC = new URLSearchParams(location.search).has("static");
+const FINALE = SLIDES.length - 1; // slide cuối -> bắn pháo hoa + âm thanh
+
+function fit(){ const s=document.getElementById("stage");
+  s.style.transform="scale("+Math.min(innerWidth/1920,innerHeight/1080)+")"; }
+addEventListener("resize",fit); fit();
+
+const layers=[document.getElementById("layerA"),document.getElementById("layerB")];
+const hero=document.getElementById("hero"), banner=document.getElementById("banner");
+const heroText=document.getElementById("heroText"), heroDate=document.getElementById("heroDate");
+let cur=0, front=0, timer=null, paused=false;
+
+function preload(src){ return new Promise(r=>{ if(!src) return r(); const i=new Image(); i.onload=i.onerror=()=>r(); i.src=src; }); }
+
+function buildFrames(box, slots, photos){
+  box.innerHTML='';
+  const clipSlots=slots.filter(s=>(s.frame||'')==='clip');
+  if(clipSlots.length>=2){  // dây phơi nối các khung kẹp
+    const y=Math.min(...clipSlots.map(s=>s.cy - s.h/2)) - 6;
+    const xs=clipSlots.map(s=>s.cx);
+    const x1=Math.min(...xs)-30, x2=Math.max(...xs)+30;
+    const line=document.createElement('div'); line.className='string';
+    line.style.left=x1+'px'; line.style.top=y+'px'; line.style.width=(x2-x1)+'px';
+    box.appendChild(line);
+  }
+  slots.forEach((s,idx)=>{
+    const fr=document.createElement('div');
+    fr.className='pframe f-'+(s.frame||'polaroid');
+    fr.style.left=s.cx+'px'; fr.style.top=s.cy+'px'; fr.style.width=s.w+'px';
+    fr.style.transform=`translate(-50%,-50%) rotate(${s.rot||0}deg)`;
+    fr.style.zIndex=3+idx;
+    if(s.color) fr.style.setProperty('--c', s.color);
+    const fb=document.createElement('div'); fb.className='framebox'; fb.style.height=s.h+'px';
+    const img=document.createElement('img'); img.className='photo'; img.alt='';
+    img.src=photos[idx % photos.length];
+    if(!STATIC){ img.style.setProperty('--dur',(DUR/1000)+'s'); img.classList.add('kb'); }
+    fb.appendChild(img); fr.appendChild(fb); box.appendChild(fr);
+  });
+}
+
+/* ---- Pháo hoa (canvas) + âm thanh cho slide cuối ---- */
+const fw=document.getElementById('fw'), fwx=fw.getContext('2d');
+const FW_COLORS=['#ff5a8a','#ffd23f','#4f8fe0','#7cffa0','#ff8f3f','#c77dff','#ff5252','#5ad1ff','#ffffff'];
+let fwOn=false, fwRaf=null, fwParts=[], fwRockets=[], fwLast=0, fwLaunchT=0;
+const fwRand=(a,b)=>a+Math.random()*(b-a);
+function fwExplode(x,y){ const n=70+Math.floor(Math.random()*50), col=FW_COLORS[Math.floor(Math.random()*FW_COLORS.length)], sp=fwRand(3.5,7.5);
+  for(let i=0;i<n;i++){ const a=Math.PI*2*i/n, s=sp*fwRand(.4,1.15);
+    fwParts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,col,size:fwRand(2,4.2)}); } }
+function fwStep(dt){ const k=dt/16;
+  fwLaunchT-=dt; if(fwLaunchT<=0){ fwLaunchT=fwRand(240,600);
+    fwRockets.push({x:fwRand(320,1600),y:1080,ty:fwRand(170,470),vy:fwRand(-16,-13)}); }
+  fwx.clearRect(0,0,1920,1080);
+  fwx.fillStyle='#fff'; for(const r of fwRockets){ r.y+=r.vy*k; r.vy+=0.12*k; fwx.fillRect(r.x-1.5,r.y-6,3,11); }
+  fwRockets=fwRockets.filter(r=>{ if(r.vy>=-2||r.y<=r.ty){ fwExplode(r.x,r.y); return false;} return true; });
+  for(const p of fwParts){ p.x+=p.vx*k; p.y+=p.vy*k; p.vy+=0.055*k; p.vx*=Math.pow(0.99,k); p.life-=0.011*k; }
+  fwParts=fwParts.filter(p=>p.life>0);
+  fwx.globalCompositeOperation='lighter';
+  for(const p of fwParts){ fwx.globalAlpha=Math.max(p.life,0); fwx.fillStyle=p.col; fwx.beginPath(); fwx.arc(p.x,p.y,p.size,0,7); fwx.fill(); }
+  fwx.globalAlpha=1; fwx.globalCompositeOperation='source-over'; }
+function fwLoop(t){ if(!fwOn) return; const dt=Math.min(t-fwLast,50)||16; fwLast=t; fwStep(dt); fwRaf=requestAnimationFrame(fwLoop); }
+function fwStart(){ if(fwOn) return; fwOn=true; fwParts=[]; fwRockets=[]; fwLaunchT=0; fw.classList.remove('hidden');
+  fwLast=performance.now(); fwRaf=requestAnimationFrame(fwLoop); }
+function fwStop(){ fwOn=false; if(fwRaf) cancelAnimationFrame(fwRaf); fwx.clearRect(0,0,1920,1080); fw.classList.add('hidden'); }
+// bước pháo hoa theo dt cố định (cho quay video mượt, tất định)
+window.__fwStepFixed=(dt)=>{ if(!fwOn){ fwOn=true; fwParts=[]; fwRockets=[]; fwLaunchT=0; fw.classList.remove('hidden'); } fwStep(dt); };
+
+const sfxAudios=(SFX||[]).map(s=>{ const a=new Audio(s); a.preload='auto'; return a; });
+function sfxPlay(){ sfxAudios.forEach(a=>{ try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e){} }); }
+function sfxStop(){ sfxAudios.forEach(a=>{ try{ a.pause(); a.currentTime=0; }catch(e){} }); }
+
+async function render(i){
+  const sl=SLIDES[i];
+  if(i===FINALE){ if(!STATIC){ fwStart(); sfxPlay(); } } else { fwStop(); sfxStop(); }
+  const back=1-front, layer=layers[back];
+  const scenes=layer.querySelectorAll('.scene,.scene-blur');
+  const box=layer.querySelector('.photos');
+  await preload(sl.scene); scenes.forEach(e=> e.src=sl.scene);
+  if(sl.type==='photo'){
+    await Promise.all((sl.photos||[]).map(preload));
+    buildFrames(box, sl.slots||[], sl.photos||[]);
+    hero.classList.add('hidden');
+    if(sl.caption){ banner.textContent=sl.caption; banner.classList.remove('hidden');
+      banner.classList.toggle('long', sl.caption.length>34); }
+    else banner.classList.add('hidden');
+  } else if(sl.type==='coverimg'){
+    box.innerHTML=''; banner.classList.add('hidden'); hero.classList.add('hidden');
+  } else {
+    box.innerHTML='';
+    banner.classList.add('hidden');
+    heroText.innerHTML=sl.text||''; heroDate.textContent=sl.date||'';
+    hero.classList.remove('hidden');
+  }
+  layers[front].classList.remove('on'); layer.classList.add('on'); front=back;
+}
+
+async function go(i){ cur=(i+SLIDES.length)%SLIDES.length; await render(cur); }
+async function next(){ await go(cur+1); }
+async function prev(){ await go(cur-1); }
+function schedule(){ clearTimeout(timer); if(paused||STATIC) return;
+  timer=setTimeout(async()=>{ await next(); schedule(); }, DUR); }
+
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){ next(); schedule(); }
+  else if(e.key==='ArrowLeft'){ prev(); schedule(); }
+  else if(e.key===' '){ e.preventDefault(); paused=!paused; schedule(); }
+});
+
+window.__count=SLIDES.length;
+window.__goto=async(i)=>{ await go(i); await new Promise(r=>setTimeout(r,80)); return true; };
+
+function begin(){ document.getElementById('start').classList.add('hidden');
+  const b=document.getElementById('bgm');
+  if(MUSIC && MUSIC.length){
+    let mi=0; b.volume=.6;
+    const playCur=()=>{ b.src=MUSIC[mi%MUSIC.length]; b.play().catch(()=>{}); };
+    b.addEventListener('ended',()=>{ mi++; playCur(); });
+    playCur();
+  }
+  go(0); schedule(); }
+document.getElementById('start').addEventListener('click',begin);
+if(STATIC){ document.body.classList.add('static-mode'); document.getElementById('start').classList.add('hidden'); go(0); }
+</script>
+</body>
+</html>
